@@ -1,76 +1,78 @@
-# src/core/ocr.py
-
 """
-Text detection using Tesseract OCR.
-Handles image loading, text detection and error handling.
+This module contains the functionality for performing Optical Character Recognition (OCR)
+to extract text from images using the pytesseract library.
 """
 
-
-import cv2
+from PIL import Image
 import pytesseract
-import numpy as np
+import logging
+import io
 
-from typing import Tuple, List, Dict, Optional
+# Configure logging to display any potential errors or warnings
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
-# Configure Tesseract path (if not in system PATH)
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
-
-class OCRException(Exception):
-    """Custom exception for OCR-related errors."""
-
-    pass
-
-
-def detect_text(image_path: str) -> Tuple[str, List[Dict[str, Tuple[int, int, int, int]]]]:
+def extract_text_from_image(image: Image.Image, language: str = 'rus') -> str:
     """
-    Detect text and their bounding boxes in an image.
-    
+    Extracts text from a given PIL Image object using Tesseract OCR.
+
     Args:
-        image_path: Path to the input image.
-        
+        image: A PIL Image object containing the text to be extracted.
+        language: The language code for OCR (e.g., 'rus' for Russian, 'eng' for English).
+                  Defaults to 'rus' for now, as per user's request.
+
     Returns:
-        Tuple containing:
-        - Combined detected text (str)
-        - List of dictionaries with 'text' and 'bbox' (x, y, w, h)
-        
-    Raises:
-        OCRException: If image loading or text detection fails.
+        A string containing the extracted text. Returns an empty string if no text is found
+        or if an error occurs during OCR. Raises AttributeError if the input image is None.
     """
-
+    if image is None:
+        raise AttributeError("Input image cannot be None.")
     try:
-        # Load image using OpenCV
-        image = cv2.imread(image_path)
+        # Save the Pillow image to an in-memory byte stream in PNG format.
+        # Tesseract often works well with PNG format.
+        image_bytes = io.BytesIO()
+        image.save(image_bytes, format="PNG")
+        image_bytes.seek(0)  # Reset the buffer's position to the beginning
 
-        if image is None:
-            raise OCRException(f"Failed to load image: {image_path}")
-        
-        # Convert to RGB (Tesseract expects RGB format)
-        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # Open the image from the byte stream using PIL again.
+        # This might help ensure the format is correctly understood by pytesseract.
+        pil_image_from_bytes = Image.open(image_bytes)
 
-        # Use Tesseract to detect text and bounding boxes
-        data = pytesseract.image_to_data(image_rgb, output_type=pytesseract.Output.DICT)
-
-        # Extract text and bounding boxes
-        combined_text = []
-        boxes = []
-
-        for i in range(len(data['text'])):
-            if int(data['conf'][i]) > 60:   # Confidence threshold
-                text = data['text'][i].strip()
-
-                if text:
-                    x, y, w, h = data['left'][i], data['top'][i], data['width'][i], data['height'][i]
-                    combined_text.append(text)
-                    boxes.append({
-                        'text': text,
-                        'bbox': (x, y, x + w, y + h)
-                    })
-        
-        return ' '.join(combined_text), boxes
-    
-    except pytesseract.TesseractError as e:
-        raise OCRException(f"Tesseract error: {str(e)}") from e
+        # Perform OCR using pytesseract with the newly opened PIL Image object.
+        config = '--oem 3 --psm 3'
+        extracted_text: str = pytesseract.image_to_string(pil_image_from_bytes, lang=language, config=config)
+        return extracted_text.strip()  # Remove leading/trailing whitespace
+    except pytesseract.TesseractNotFoundError:
+        error_message = "Tesseract is not installed or not in your PATH. " \
+                        "Please make sure Tesseract OCR is installed and configured correctly."
+        logging.error(error_message)
+        return ""
     except Exception as e:
-        raise OCRException(f"Unexpected error: {str(e)}") from e
+        logging.error(f"An error occurred during OCR: {e}")
+        return ""
+
+if __name__ == '__main__':
+    # Example usage (this will run only if this script is executed directly)
+    try:
+        # Create a dummy image with some Russian text for testing
+        from PIL import ImageDraw, ImageFont
+        img = Image.new('RGB', (200, 50), color = (255, 255, 255))
+        d = ImageDraw.Draw(img)
+        try:
+            # You might need to adjust the font path to a font that supports Russian characters
+            font = ImageFont.truetype("arial.ttf", 20)
+        except IOError:
+            font = ImageFont.load_default()
+        d.text((10,10), "Привет Мир", fill=(0,0,0), font=font)
+
+        # Save the dummy image
+        img.save("temp_test_image.png")
+        test_image = Image.open("temp_test_image.png")
+        extracted_text = extract_text_from_image(test_image, language='rus') # Specify Russian language
+        print(f"Extracted text: '{extracted_text}'")
+        import os
+        os.remove("temp_test_image.png") # Clean up the temporary image
+
+    except ImportError:
+        print("Pillow is not installed. Please install it to run the example.")
+    except pytesseract.TesseractNotFoundError:
+        print("Tesseract is not installed or not in your PATH.")

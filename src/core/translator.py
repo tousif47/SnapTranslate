@@ -1,70 +1,52 @@
-# src/core/translator.py
-
 """
-Text translation using Googletrans.
-Handles language detection and translation with error handling.
+This module contains the functionality for translating text using the googletrans library (async).
 """
 
+from googletrans import Translator
+import logging
+import asyncio
 
-from googletrans import Translator as GoogleTranslator
-from googletrans.models import Translated
-from typing import Tuple, Optional
+# Configure logging to display any potential errors or warnings
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+async def translate_text(text: str, src_lang: str = 'ru', dest_lang: str = 'en') -> str:
+    """
+    Translates the given text from the source language to the destination language
+    using the Google Translate API via the googletrans library (async).
 
-class TranslationException(Exception):
-    """Custom exception for translation-related errors."""
+    Args:
+        text: The string of text to be translated.
+        src_lang: The ISO 639-1 code of the source language (e.g., 'ru' for Russian).
+                  Defaults to 'ru'.
+        dest_lang: The ISO 639-1 code of the destination language (e.g., 'en' for English).
+                   Defaults to 'en'.
 
-    pass
+    Returns:
+        A string containing the translated text. Returns an empty string if the input
+        text is empty or if an error occurs during translation.
+    """
+    if not text.strip():
+        return ""
 
-
-class TextTranslator:
-    def __init__(self):
-        self.translator = GoogleTranslator()
-    
-    
-    def detect_language(self, text: str) -> Tuple[str, float]:
-        """
-        Detect the language of the inpot text.
-
-        Args:
-            text: Input text to detect.
-        
-        Returns:
-            TranslationException: If detection fails.
-        """
-
+    async with Translator() as translator:
         try:
-            detection = self.translator.detect(text)
-
-            return detection.lang, detection.confidence
-        
+            translation = await translator.translate(text, src=src_lang, dest=dest_lang)
+            return translation.text
         except Exception as e:
-            raise TranslationException(f"Language detection failed: {str(e)}") from e
-    
+            logging.error(f"Translation error: {e}")
+            return ""
 
-    def translate_text(self, text: str, src_lang: str = "auto", dest_lang: str = "en") -> Translated:
-        """
-        Translate text from source to destination language.
-        
-        Args:
-            text: Text to translate.
-            src_lang: Source language code (default: auto-detect).
-            dest_lang: Target language code (default: English).
-            
-        Returns:
-            Translated object with text, source/dest languages, and pronunciation.
-            
-        Raises:
-            TranslationException: If translation fails.
-        """
+if __name__ == '__main__':
+    # Example usage (this will run only if this script is executed directly)
+    async def main():
+        russian_text = "Привет мир"
+        english_translation = await translate_text(russian_text, src_lang='ru', dest_lang='en')
+        print(f"Original Russian text: '{russian_text}'")
+        print(f"Translated English text: '{english_translation}'")
 
-        try:
-            translated = self.translator.translate(text, src=src_lang, dest=dest_lang)
+        english_text = "Hello world"
+        russian_translation = await translate_text(english_text, src_lang='en', dest_lang='ru')
+        print(f"\nOriginal English text: '{english_text}'")
+        print(f"Translated Russian text: '{russian_translation}'")
 
-            if not translated.text:
-                raise TranslationException("Translation returned empty text.")
-            
-            return translated
-        
-        except Exception as e:
-            raise TranslationException(f"Translation failed: {str(e)}") from e
+    asyncio.run(main())
