@@ -59,13 +59,10 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("SnapTranslate")
-        self.setGeometry(100, 100, 300, 100)  # Initial window size
+        self.setGeometry(100, 100, 100, 50)  # Increased initial height
 
-        # Set the application icon
-        app_icon = QIcon("src/gui/app_icon.jpg") # Assuming app_icon.jpg is in the same folder
+        app_icon = QIcon("src/gui/app_icon.jpg")
         self.setWindowIcon(app_icon)
-
-        # Disable the maximize button
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowMaximizeButtonHint)
 
         self.central_widget = QWidget()
@@ -73,23 +70,35 @@ class MainWindow(QMainWindow):
 
         self.main_layout = QVBoxLayout(self.central_widget)
 
-        # Create a horizontal layout for the button to control its width
-        self.button_layout = QHBoxLayout()
+        # Horizontal layout for buttons
+        self.buttons_layout = QHBoxLayout()
+
         self.new_button = QPushButton("+ New")
         self.new_button.clicked.connect(self.start_screen_capture)
-        self.button_layout.addWidget(self.new_button)
-        self.button_layout.setAlignment(Qt.AlignCenter) # Center the button
+        self.buttons_layout.addWidget(self.new_button)
 
-        self.main_layout.addLayout(self.button_layout)
+        self.translate_russian_button = QPushButton("Translate Russian")
+        self.translate_russian_button.clicked.connect(lambda: self.translate("ru")) # Pass language code
+        self.buttons_layout.addWidget(self.translate_russian_button)
 
-        # --- Dark Theme Implementation (Initial Toggle) ---
-        self.dark_theme_enabled = True # You can change this to False for the normal theme
+        self.translate_swedish_button = QPushButton("Translate Swedish")
+        self.translate_swedish_button.clicked.connect(lambda: self.translate("sv")) # Pass language code
+        self.buttons_layout.addWidget(self.translate_swedish_button)
+
+        self.main_layout.addLayout(self.buttons_layout)
+
+        self.dark_theme_enabled = True
         if self.dark_theme_enabled:
             self.apply_dark_theme()
 
         self.capture_widget = None
+        self.captured_image_data = None # Store the captured QPixmap
         self.captured_label = None
-        self.translation_label = None # Label to display translated text
+        self.translation_label = None
+
+        # Initialize asyncio event loop
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
     def apply_dark_theme(self):
         dark_stylesheet = """
@@ -98,6 +107,9 @@ class MainWindow(QMainWindow):
             }
             QWidget {
                 background-color: #363636;
+                color: #f0f0f0;
+            }
+            QLabel {
                 color: #f0f0f0;
             }
             QPushButton {
@@ -122,37 +134,37 @@ class MainWindow(QMainWindow):
         screen_geometry = QApplication.desktop().screenGeometry()
         self.capture_widget.setGeometry(screen_geometry)
         self.capture_widget.showFullScreen()
-        self.capture_widget.captured_image.connect(self.process_captured_image)
+        self.capture_widget.captured_image.connect(self.store_captured_image)
 
-    def process_captured_image(self, image):
+    def store_captured_image(self, image):
         print("Image captured!")
-
-        # Convert QPixmap to Pillow Image
-        qimage = image.toImage()
-        temp_buffer = qimage.constBits().asstring(qimage.byteCount())
-        pil_image = Image.frombuffer("RGBA", (qimage.width(), qimage.height()), temp_buffer, "raw", "RGBA", 0, 1)
-
-        # Perform OCR and translation
-        async def translate_captured_text():
-            translated_text = await processing.process_image_and_translate(pil_image, target_language='en')
-            self.display_translation(translated_text)
-
-        asyncio.run(translate_captured_text())
-
-        # Display the captured image
+        self.captured_image_data = image
         if self.captured_label is None:
             self.captured_label = QLabel()
             self.main_layout.addWidget(self.captured_label)
-        self.captured_label.setPixmap(image.scaledToWidth(300)) # Display a scaled version
+        self.captured_label.setPixmap(self.captured_image_data.scaledToWidth(300))
+        self.showNormal()
 
-        self.showNormal() # Show the main window again
+    def translate(self, source_language):
+        if self.captured_image_data is not None:
+            pil_image = self.qpixmap_to_pil_image(self.captured_image_data)
+            async def translate_text():
+                translated_text = await processing.process_image_and_translate(pil_image, target_language='en', source_language=source_language)
+                self.display_translation(translated_text)
+            asyncio.run(translate_text())
+
+    def qpixmap_to_pil_image(self, pixmap):
+        qimage = pixmap.toImage()
+        temp_buffer = qimage.constBits().asstring(qimage.byteCount())
+        pil_image = Image.frombuffer("RGBA", (qimage.width(), qimage.height()), temp_buffer, "raw", "RGBA", 0, 1)
+        return pil_image
 
     def display_translation(self, text):
         print(f"Translated text: '{text}'")
         if self.translation_label is None:
             self.translation_label = QLabel()
             self.main_layout.addWidget(self.translation_label)
-        self.translation_label.setText(f"Translation: {text}")
+        self.translation_label.setText(f"{text}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

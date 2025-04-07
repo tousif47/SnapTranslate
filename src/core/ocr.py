@@ -7,18 +7,23 @@ from PIL import Image
 import pytesseract
 import logging
 import io
+import os
+
+# Explicitly set TESSDATA_PREFIX at the beginning
+tessdata_dir = r'F:\Bork\Installed\Tesseract\tessdata'
+os.environ['TESSDATA_PREFIX'] = tessdata_dir
 
 # Configure logging to display any potential errors or warnings
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def extract_text_from_image(image: Image.Image, language: str = 'rus') -> str:
+def extract_text_from_image(image: Image.Image, language: str = None) -> str:
     """
     Extracts text from a given PIL Image object using Tesseract OCR.
 
     Args:
         image: A PIL Image object containing the text to be extracted.
         language: The language code for OCR (e.g., 'rus' for Russian, 'eng' for English).
-                  Defaults to 'rus' for now, as per user's request.
+                         Defaults to None.
 
     Returns:
         A string containing the extracted text. Returns an empty string if no text is found
@@ -31,7 +36,7 @@ def extract_text_from_image(image: Image.Image, language: str = 'rus') -> str:
         # Tesseract often works well with PNG format.
         image_bytes = io.BytesIO()
         image.save(image_bytes, format="PNG")
-        image_bytes.seek(0)  # Reset the buffer's position to the beginning
+        image_bytes.seek(0)   # Reset the buffer's position to the beginning
 
         # Open the image from the byte stream using PIL again.
         # This might help ensure the format is correctly understood by pytesseract.
@@ -39,8 +44,12 @@ def extract_text_from_image(image: Image.Image, language: str = 'rus') -> str:
 
         # Perform OCR using pytesseract with the newly opened PIL Image object.
         config = '--oem 3 --psm 3'
-        extracted_text: str = pytesseract.image_to_string(pil_image_from_bytes, lang=language, config=config)
-        return extracted_text.strip()  # Remove leading/trailing whitespace
+        lang_param = language
+        if language == 'ru':
+            lang_param = 'rus' # Using the three-letter code for Russian
+
+        extracted_text: str = pytesseract.image_to_string(pil_image_from_bytes, lang=lang_param, config=config)
+        return extracted_text.strip()   # Remove leading/trailing whitespace
     except pytesseract.TesseractNotFoundError:
         error_message = "Tesseract is not installed or not in your PATH. " \
                         "Please make sure Tesseract OCR is installed and configured correctly."
