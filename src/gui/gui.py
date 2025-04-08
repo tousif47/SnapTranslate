@@ -149,9 +149,16 @@ class MainWindow(QMainWindow):
         if self.captured_image_data is not None:
             pil_image = self.qpixmap_to_pil_image(self.captured_image_data)
             async def translate_text():
-                translated_text = await processing.process_image_and_translate(pil_image, target_language='en', source_language=source_language)
-                self.display_translation(translated_text)
+                try:
+                    translated_text = await processing.process_image_and_translate(pil_image, target_language='en', source_language=source_language)
+                    self.display_translation(translated_text)
+                except Exception as e:
+                    error_message = f"An error occurred during translation: {str(e)}"
+                    print(error_message)
+                    self.display_translation(f"Translation Error: {error_message}") # Display a user-friendly error
             asyncio.run(translate_text())
+        else:
+            self.display_translation("Please capture an image first.")
 
     def qpixmap_to_pil_image(self, pixmap):
         qimage = pixmap.toImage()

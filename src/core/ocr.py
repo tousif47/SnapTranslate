@@ -8,13 +8,25 @@ import pytesseract
 import logging
 import io
 import os
-
-# Explicitly set TESSDATA_PREFIX at the beginning
-tessdata_dir = r'F:\Bork\Installed\Tesseract\tessdata'
-os.environ['TESSDATA_PREFIX'] = tessdata_dir
+import configparser
 
 # Configure logging to display any potential errors or warnings
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def get_tessdata_path():
+    config = configparser.ConfigParser()
+    config.read('config.ini')  # Assuming config.ini is in the root directory
+    if 'Tesseract' in config and 'TESSDATA_PATH' in config['Tesseract']:
+        return config['Tesseract']['TESSDATA_PATH']
+    else:
+        # Provide a default path if not found in config
+        default_path = r'F:\Bork\Installed\Tesseract\tessdata'
+        logging.warning(f"Tesseract data path not found in config.ini. Using default: {default_path}")
+        return default_path
+
+# Set TESSDATA_PREFIX from the configuration
+tessdata_dir = get_tessdata_path()
+os.environ['TESSDATA_PREFIX'] = tessdata_dir
 
 def extract_text_from_image(image: Image.Image, language: str = None) -> str:
     """
@@ -46,7 +58,7 @@ def extract_text_from_image(image: Image.Image, language: str = None) -> str:
         config = '--oem 3 --psm 3'
         lang_param = language
         if language == 'ru':
-            lang_param = 'rus' # Using the three-letter code for Russian
+            lang_param = 'rus'
 
         extracted_text: str = pytesseract.image_to_string(pil_image_from_bytes, lang=lang_param, config=config)
         return extracted_text.strip()   # Remove leading/trailing whitespace

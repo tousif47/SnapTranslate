@@ -1,7 +1,4 @@
-"""
-This module integrates OCR and translation functionalities.
-"""
-
+# src/core/processing.py
 from PIL import Image
 from . import ocr
 from . import translator
@@ -15,7 +12,7 @@ async def process_image_and_translate(image: Image.Image, target_language: str =
     Args:
         image: A PIL Image object.
         target_language: The ISO 639-1 code of the target language for translation.
-                         Defaults to 'en' (English).
+                         Defaults to None.
         source_language: The ISO 639-1 code of the source language.
                          Defaults to None.
 
@@ -24,7 +21,9 @@ async def process_image_and_translate(image: Image.Image, target_language: str =
         no text is extracted or if translation fails.
     """
     extracted_text = ocr.extract_text_from_image(image, language=source_language)
-    if extracted_text:
+    if not extracted_text:
+        return "No text found in the image."
+    else:
         translated_text = await translator.translate_text(extracted_text, dest_lang=target_language, src_lang=source_language)
         return translated_text
     return ""
@@ -41,10 +40,10 @@ if __name__ == '__main__':
             font = ImageFont.load_default()
         d.text((10, 10), "Привет Мир", fill=(0, 0, 0), font=font)
 
-        translated_english = await process_image_and_translate(img, target_language='en')
+        translated_english = await process_image_and_translate(img, target_language='en', source_language='ru')
         print(f"Translated to English: '{translated_english}'")
 
-        translated_spanish = await process_image_and_translate(img, target_language='es')
+        translated_spanish = await process_image_and_translate(img, target_language='es', source_language='ru')
         print(f"Translated to Spanish: '{translated_spanish}'")
 
     asyncio.run(main())
