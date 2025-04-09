@@ -1,15 +1,16 @@
+# tests/test_ocr.py
+
 """
 This module contains unit tests for the OCR functionality in the src.core.ocr module.
 It uses the unittest framework to verify the text extraction from images.
 """
 
 import unittest
+import pytesseract
+import os
+
 from src.core import ocr
 from PIL import Image, ImageDraw, ImageFont
-import io
-import pytesseract  # Ensure pytesseract is imported here
-import os
-import tempfile  # Import the tempfile module
 
 class TestOCR(unittest.TestCase):
     """
@@ -21,13 +22,16 @@ class TestOCR(unittest.TestCase):
         Tests if the function correctly extracts text from an image containing text.
         (Using English text in memory)
         """
+
         # Create a simple in-memory image with text using Pillow
         image = Image.new('RGB', (100, 30), color='white')
         draw = ImageDraw.Draw(image)
+
         try:
             font = ImageFont.truetype("arial.ttf", 16)
         except IOError:
             font = ImageFont.load_default()
+
         draw.text((10, 10), "Test Text", fill='black', font=font)
 
         extracted_text = ocr.extract_text_from_image(image, language='eng') # Pass the Pillow Image object
@@ -38,6 +42,7 @@ class TestOCR(unittest.TestCase):
         Tests if the function returns an empty string when no text is present in the image.
         (Using a blank image in memory)
         """
+
         # Create a blank white image
         image = Image.new('RGB', (100, 30), color='white')
         extracted_text = ocr.extract_text_from_image(image) # Pass the Pillow Image object
@@ -49,6 +54,7 @@ class TestOCR(unittest.TestCase):
         using an image file from the samples folder.
         Requires the corresponding language pack to be installed for Tesseract.
         """
+
         try:
             # Construct the path to the Russian test image
             sample_image_path = os.path.join("data", "samples", "ru_test.jpg") # Updated to .jpg
@@ -71,6 +77,7 @@ class TestOCR(unittest.TestCase):
         """
         Tests if the function handles an empty (None) image gracefully by raising AttributeError.
         """
+
         with self.assertRaises(AttributeError): # Expecting an AttributeError if None is passed
             ocr.extract_text_from_image(None)
 
