@@ -19,24 +19,28 @@ SnapTranslate is a simple desktop application that allows you to capture a porti
 
 ### Installation Steps
 
-1.  **Clone the repository:**
+1.  **Clone the repository (optional, if you are installing from PyPI directly you can skip this):**
 
     ```bash
-    git clone [https://github.com/your-github-username/SnapTranslate.git](https://github.com/tousif47/SnapTranslate.git)
+    git clone [https://github.com/tousif47/SnapTranslate](https://github.com/tousif47/SnapTranslate.git)
     cd SnapTranslate
     ```
 
-2.  **Install the required Python packages:**
+2.  **Install SnapTranslate from PyPI:**
 
     ```bash
-    pip install .
+    pip install snaptranslate
     ```
 
-    (This command assumes you are in the root directory of the project where the `setup.py` file is located. It will install SnapTranslate and all its dependencies.)
+    (This command will download and install SnapTranslate and all its dependencies.)
 
-## Usage
+### Running the Application
 
-1.  **Run the application:**
+Once the installation is complete, you can run SnapTranslate from your command prompt or terminal.
+
+1.  **Open a new command prompt (on Windows) or terminal (on macOS/Linux).**
+
+2.  **Type the following command and press Enter:**
 
     ```bash
     snaptranslate
@@ -44,17 +48,17 @@ SnapTranslate is a simple desktop application that allows you to capture a porti
 
     This command should launch the SnapTranslate GUI.
 
-2.  **Capture Screen Area:** Click the "+ New" button. Your screen will become dimmed, and you can click and drag to select the area you want to capture. Release the mouse button to capture.
+    **Note:** If you get an error like "'snaptranslate' is not recognized...", it means your system's PATH environment variable is not set up to include the directory where `pip` installed the `snaptranslate` script. Here's how you might resolve this:
 
-3.  **Translate:** After capturing, you will see two buttons: "Translate Russian" and "Translate Swedish". Click the button corresponding to the language of the text in your captured area.
+    * **Windows:** The script is likely in your Python installation's `Scripts` folder (e.g., `C:\Python3x\Scripts` or within your virtual environment's `Scripts` folder if you used one). You might need to add this directory to your system's PATH. You can search online for "how to add Python to PATH on Windows" for detailed instructions.
 
-4.  **View Translation:** The translated text will be displayed in the text area at the bottom of the window.
+    * **macOS/Linux:** If you installed globally, the script might be in `/usr/local/bin` or `/usr/bin`, which are usually in the PATH. If you used a virtual environment, make sure it is activated before running the command.
 
-## Configuration
+### Configuration
 
 You can configure the path to your Tesseract installation by modifying the `config.ini` file located in the root directory of the project.
 
-1.  **Locate `config.ini`:** This file should be in the same directory as your `setup.py` file.
+1.  **Locate `config.ini`:** This file should be in the same directory as your `setup.py` file (if you cloned the repository) or in the location where the application is installed (you might need to create it if it doesn't exist).
 2.  **Edit `config.ini`:** Open the file in a text editor. You should see a section like this:
 
     ```ini
